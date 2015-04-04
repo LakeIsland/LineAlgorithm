@@ -1,9 +1,12 @@
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
@@ -14,6 +17,8 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -25,8 +30,8 @@ public class LineAlgorithm extends JFrame{
 	public LineAlgorithm(){
 		super("LineAlgorithm");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setSize(800,800);
-		setBounds(0,0,820,650);
+		setSize(820,800);
+		setBounds(0,0,840,660);
 		setLayout(null);
 		setVisible(true);
 		
@@ -37,8 +42,8 @@ public class LineAlgorithm extends JFrame{
 		add(resultPanel);
 		
 		btnPanel = new BtnPanel(resultPanel);
-		btnPanel.setSize(600,600);
-		btnPanel.setBounds(600,0,200,600);
+		btnPanel.setSize(600,650);
+		btnPanel.setBounds(620,0,200,650);
 		add(btnPanel);
 
 		setVisible(true);
@@ -53,17 +58,15 @@ public class LineAlgorithm extends JFrame{
 
 class BtnPanel extends JPanel{
 	
-	
-	
-	
 	class RidePanel extends JPanel{
-		JLabel rideName;
+		JLabel rideName, rideColor;
 		JTextField ridePop;
 		JTextField rideFreq;
 		JCheckBox showResult;
 		int rideIndex;
 		
 		public void enable(){
+			//rideColor.setEnabled(true);
 			rideName.setEnabled(true);
 			ridePop.setEnabled(true);
 			rideFreq.setEnabled(true);
@@ -79,8 +82,10 @@ class BtnPanel extends JPanel{
 			showResult.setEnabled(false);
 		}
 		
-		public RidePanel(int Index){
+		public RidePanel(int Index,Color color){
+			
 			rideName = new JLabel(Integer.toString(Index+1)+" Ride");
+			rideName.setForeground(color);
 			ridePop = new JTextField(Integer.toString(Index+1),3);
 			rideFreq = new JTextField("1",3);
 			
@@ -99,7 +104,6 @@ class BtnPanel extends JPanel{
 						resultPanel.repaint();
 					}
 				}
-				
 			});
 			showResult.setSelected(true);
 			add(rideName);
@@ -116,43 +120,52 @@ class BtnPanel extends JPanel{
 	JComboBox<String> INPUT_RIDE_NUMBER;
 	JCheckBox [] showset;
 	RidePanel [] ridePanelSet;
+	JTextField initValue;
 	
 	ResultShowingPanel resultPanel;
 	ArrayList<ArrayList<ArrayList<Integer>>> totalpreinfo, totalpostinfo;
-	final JTextField INPUT_TOTAL_TIME = new JTextField("500",5);
-	final JTextField INPUT_REPEAT_NUMBER = new JTextField("50",5);
-	String [] RIDE_NUMBER_ARRAY = {"1","2","3","4","5","6","7","8"};
+	
+	final JTextField timeAfter;
+	final JTextArea statisticsShowingArea;
+	
+	final String [] RIDE_NUMBER_ARRAY = {"1","2","3","4","5","6","7","8"};
+	final String [] FUNCTION_TYPE_ARRAY = {"Polynomial","Power","Logarithm","Exponential"};
 	int rideNumber;
 	
 	public BtnPanel(ResultShowingPanel r){
 		resultPanel = r;
 		
+		// (1) add Label
 		add(new JLabel("     Ride   Pop     Freq   Show"));
 		
+		// (2) add 8 ridePanel
 		ridePanelSet = new RidePanel[8];
-		//setLayout(null);
 		for(int i=0; i<8; i++){
-			RidePanel temp = new RidePanel(i);
+			RidePanel temp = new RidePanel(i,ResultShowingPanel.Col[i]);
 			ridePanelSet[i] = temp;
 			add(temp);
 		}
-		
-		//INPUT_TOTAL_TIME.setEnabled(false);
-		//text.setBounds(0,0,100,100);
-		//text.setSize(100,200);
-		
-		add(new JLabel("        Time        Repeat   RideNum"));
-		
-		add(INPUT_TOTAL_TIME);
-		add(INPUT_REPEAT_NUMBER);
-		
-		INPUT_RIDE_NUMBER = new JComboBox<String>(RIDE_NUMBER_ARRAY);
-		INPUT_RIDE_NUMBER.setSelectedIndex(4);
 		rideNumber = 5;
 		ridePanelSet[5].disable();
 		ridePanelSet[6].disable();
 		ridePanelSet[7].disable();
 		
+		// (3) add Label
+		add(new JLabel("   Time    Repeat    Init    RideNum"));
+		
+		// (4) add textfield to receive time, repeat input
+		final JTextField INPUT_TOTAL_TIME = new JTextField("500",3);
+		final JTextField INPUT_REPEAT_NUMBER = new JTextField("50",3);
+		add(INPUT_TOTAL_TIME);
+		add(INPUT_REPEAT_NUMBER);
+		
+		//(9)
+				initValue = new JTextField("100",3);
+				add(initValue);
+		
+		// (5) add combobox to get ride numbers
+		INPUT_RIDE_NUMBER = new JComboBox<String>(RIDE_NUMBER_ARRAY);
+		INPUT_RIDE_NUMBER.setSelectedIndex(4);
 		INPUT_RIDE_NUMBER.addActionListener(new ActionListener(){
 
 			@Override
@@ -167,10 +180,69 @@ class BtnPanel extends JPanel{
 			}
 			
 		});
-		
 		add(INPUT_RIDE_NUMBER);
 		
-		startBtn = new JButton("start");
+		
+		add(new JLabel("      Func Type      Func Info"));
+		
+		final JComboBox<String> functionType = new JComboBox<String>(FUNCTION_TYPE_ARRAY);
+		final JTextField functionInfo = new JTextField("1,0",4);
+		functionType.setSelectedIndex(0);
+		
+		
+		
+		add(functionType);
+		add(functionInfo);
+		
+		
+		// (6) add start button
+		startBtn = new JButton("      Start simulation      ");
+		add(startBtn);
+		add(new JLabel("Show : "));
+		
+		// (7) add checkbox for show PreWaitingLineResult
+		showPreWaitingLineResult = new JCheckBox("preLine");
+		showPreWaitingLineResult.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				checkShowPreLine();
+			}
+			
+		});
+		showPreWaitingLineResult.setSelected(true);
+		checkShowPreLine();
+		add(showPreWaitingLineResult);
+		
+		// (8) add checkbox for show PostWaitingLineResult
+		showPostWaitingLineResult = new JCheckBox("postLine");
+		showPostWaitingLineResult.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				checkShowPostLine();
+			}
+
+		});
+		showPostWaitingLineResult.setSelected(true);
+		checkShowPostLine();
+		add(showPostWaitingLineResult);
+		
+		
+		add(new JLabel("Time After : "));
+		
+		timeAfter = new JTextField("200",3);
+		add(timeAfter);
+		
+		final JCheckBox showAdvancedResult = new JCheckBox("Stdev");
+		add(showAdvancedResult);
+		
+		statisticsShowingArea = new JTextArea("----RESULT----",4,14);
+		JScrollPane s = new JScrollPane(statisticsShowingArea);
+		add(s);
+		
+		
 		startBtn.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e) {
 				try{
@@ -183,11 +255,12 @@ class BtnPanel extends JPanel{
 					for(int k=0; k<REPEAT_NUMBER; k++){
 						ArrayList<Ride> rideSet = new ArrayList<Ride>();
 						for(int i=0; i<rideNumber; i++){
-							Ride ride = new Ride(Integer.parseInt(ridePanelSet[i].ridePop.getText()),Integer.parseInt(ridePanelSet[i].rideFreq.getText()));
+							FunctionType f = new FunctionType(functionType.getSelectedIndex(),functionInfo.getText());
+							Ride ride = new Ride(i,Integer.parseInt(ridePanelSet[i].ridePop.getText()),Integer.parseInt(ridePanelSet[i].rideFreq.getText()),f);
 							rideSet.add(ride);
 						}
 						
-						AmusementPark Park = new AmusementPark(rideSet);
+						AmusementPark Park = new AmusementPark(rideSet,Integer.parseInt(initValue.getText()));
 						for(int t=0; t<TOTAL_TIME; t++){
 							Park.timeElapse();
 						}
@@ -198,13 +271,8 @@ class BtnPanel extends JPanel{
 					resultPanel.preWaitingLineResult = ArrayListCalculation.averageOfArrayListOfArrayListArrayListInteger(totalpreinfo);
 					resultPanel.postWaitingLineResult = ArrayListCalculation.averageOfArrayListOfArrayListArrayListInteger(totalpostinfo);
 					
-					ArrayList<ArrayList<Double>> temp = ArrayListCalculation.averageOfArrayListOfArrayListArrayListInteger(totalpreinfo);
-					ArrayList<ArrayList<Double>> tempo = ArrayListCalculation.changeRowToColumn(temp);
-					for(ArrayList<Double> x: tempo){
-						ArrayList<Double> cutx = ArrayListCalculation.removeFirstXElements(x,400);
-						System.out.println(ArrayListCalculation.averageOfArrayListOfDouble(cutx));
-						System.out.println(ArrayListCalculation.stdevOfArrayListOfDouble(cutx));
-					}
+					showAdvancedResult.setSelected(false);
+					showStatistics();
 					
 					resultPanel.setTotalTime();
 					resultPanel.revalidate();
@@ -212,65 +280,124 @@ class BtnPanel extends JPanel{
 				} catch(Exception exception){}
 				
 			}
-			//resultPanel.preWaitingLineResult = ArrayListCalculation.averageOfArrayListOfArrayListArrayListInteger(totalpreinfo);
-			
 		});
-		add(startBtn);
 		
-		
-		//add checkbox for show PreWaitingLineResult
-		showPreWaitingLineResult = new JCheckBox("preLine");
-		showPreWaitingLineResult.addChangeListener(new ChangeListener(){
+		timeAfter.addActionListener(new ActionListener(){
 
-			public void stateChanged(ChangeEvent arg0) {
-				if(showPreWaitingLineResult.isSelected()){
-					resultPanel.showPreWaitingLineResult = true;
-					resultPanel.revalidate();
-					resultPanel.repaint();
-				}
-				else{
-					resultPanel.showPreWaitingLineResult = false;
-					resultPanel.revalidate();
-					resultPanel.repaint();
-				}
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				if(!showAdvancedResult.isSelected())
+					showStatistics();
+				else
+					showStatisticsAdvanced();
 			}
-			
-		});
-		showPreWaitingLineResult.setSelected(true);
-		add(showPreWaitingLineResult);
-		
-		//add checkbox for show PostWaitingLineResult
-		showPostWaitingLineResult = new JCheckBox("postLine");
-		showPostWaitingLineResult.addChangeListener(new ChangeListener(){
 
-			public void stateChanged(ChangeEvent arg0) {
-				if(showPostWaitingLineResult.isSelected()){
-					resultPanel.showPostWaitingLineResult = true;
-					resultPanel.revalidate();
-					resultPanel.repaint();
-				}
-				else{
-					resultPanel.showPostWaitingLineResult = false;
-					resultPanel.revalidate();
-					resultPanel.repaint();
-				}
+		});
+		
+		showAdvancedResult.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// TODO Auto-generated method stub
+				if(!showAdvancedResult.isSelected())
+					showStatistics();
+				else
+					showStatisticsAdvanced();
 			}
+
+		
 			
 		});
-		showPostWaitingLineResult.setSelected(true);
-		add(showPostWaitingLineResult);
 		
 	}
+	
+	void checkShowPreLine(){
+		if(showPreWaitingLineResult.isSelected()){
+			resultPanel.showPreWaitingLineResult = true;
+			resultPanel.revalidate();
+			resultPanel.repaint();
+		}
+		else{
+			resultPanel.showPreWaitingLineResult = false;
+			resultPanel.revalidate();
+			resultPanel.repaint();
+		}
+	}
+	
+	void checkShowPostLine(){
+		if(showPostWaitingLineResult.isSelected()){
+			resultPanel.showPostWaitingLineResult = true;
+			resultPanel.revalidate();
+			resultPanel.repaint();
+		}
+		else{
+			resultPanel.showPostWaitingLineResult = false;
+			resultPanel.revalidate();
+			resultPanel.repaint();
+		}
+	}
+	
+	
+	
+	void showStatistics(){
+		final StringBuilder resultStringBuilder = new StringBuilder();
+		ArrayList<ArrayList<Double>> preWaitingResultReSorted = ArrayListCalculation.changeRowToColumn(resultPanel.preWaitingLineResult);
+		ArrayList<ArrayList<Double>> postWaitingResultReSorted = ArrayListCalculation.changeRowToColumn(resultPanel.postWaitingLineResult);
+		
+		for(int i=0; i<preWaitingResultReSorted.size(); i++){
+			ArrayList<Double> eachPreWaitingLineResultTrimmed = ArrayListCalculation.removeFirstXElements(preWaitingResultReSorted.get(i),Integer.parseInt(timeAfter.getText()));
+			ArrayList<Double> eachPostWaitingLineResultTrimmed = ArrayListCalculation.removeFirstXElements(postWaitingResultReSorted.get(i),Integer.parseInt(timeAfter.getText()));
+			resultStringBuilder.append(String.format("%.02f",ArrayListCalculation.averageOfArrayListOfDouble(eachPreWaitingLineResultTrimmed)));
+			resultStringBuilder.append("\t");
+			resultStringBuilder.append(String.format("%.02f",ArrayListCalculation.averageOfArrayListOfDouble(eachPostWaitingLineResultTrimmed)));
+			if(i!=preWaitingResultReSorted.size()-1)
+				resultStringBuilder.append("\n");
+		}
+		
+		statisticsShowingArea.setText(resultStringBuilder.toString());
+	}
+	
+	void showStatisticsAdvanced(){
+		final StringBuilder resultStringBuilder = new StringBuilder();
+		ArrayList<ArrayList<Double>> preWaitingResultReSorted = ArrayListCalculation.changeRowToColumn(resultPanel.preWaitingLineResult);
+		ArrayList<ArrayList<Double>> postWaitingResultReSorted = ArrayListCalculation.changeRowToColumn(resultPanel.postWaitingLineResult);
+		
+		for(int i=0; i<preWaitingResultReSorted.size(); i++){
+			ArrayList<Double> eachPreWaitingLineResultTrimmed = ArrayListCalculation.removeFirstXElements(preWaitingResultReSorted.get(i),Integer.parseInt(timeAfter.getText()));
+			resultStringBuilder.append(String.format("%.02f",ArrayListCalculation.averageOfArrayListOfDouble(eachPreWaitingLineResultTrimmed)));
+			resultStringBuilder.append("\t");
+			resultStringBuilder.append(String.format("%.04f",ArrayListCalculation.stdevOfArrayListOfDouble(eachPreWaitingLineResultTrimmed)));
+			resultStringBuilder.append("\n");
+		}
+		
+		resultStringBuilder.append(" - - - - - - - - - - - - - - -  - - - \n");
+		
+		for(int i=0; i<preWaitingResultReSorted.size(); i++){
+			
+			ArrayList<Double> eachPostWaitingLineResultTrimmed = ArrayListCalculation.removeFirstXElements(postWaitingResultReSorted.get(i),Integer.parseInt(timeAfter.getText()));
+			
+			resultStringBuilder.append(String.format("%.02f",ArrayListCalculation.averageOfArrayListOfDouble(eachPostWaitingLineResultTrimmed)));
+			resultStringBuilder.append("\t");
+			resultStringBuilder.append(String.format("%.04f",ArrayListCalculation.stdevOfArrayListOfDouble(eachPostWaitingLineResultTrimmed)));
+			if(i!=preWaitingResultReSorted.size()-1)
+				resultStringBuilder.append("\n");
+		}
+		
+		statisticsShowingArea.setText(resultStringBuilder.toString());
+	}
+	
 }
 
 class ResultShowingPanel extends JPanel{
+	
 	ArrayList<ArrayList<Double>> preWaitingLineResult, postWaitingLineResult;
 	int TOTAL_RIDE_NUMBER = 8;
 	boolean showPreWaitingLineResult,showPostWaitingLineResult;
 	boolean[] showNthRideResult = new boolean[TOTAL_RIDE_NUMBER];
 	int totalTime;
 	int repeatNumber;
-	Color[] Col = {Color.BLACK,Color.BLUE,Color.RED,Color.GREEN,Color.ORANGE,Color.CYAN,Color.YELLOW,Color.MAGENTA};
+	static final Color[] Col = {Color.BLACK,Color.BLUE,Color.RED,Color.ORANGE,Color.MAGENTA,Color.CYAN,Color.YELLOW,Color.GREEN};
 	
 	public ResultShowingPanel(){
 		preWaitingLineResult = new ArrayList<ArrayList<Double>>();
@@ -297,10 +424,12 @@ class ResultShowingPanel extends JPanel{
 		for(int time = 1; time <totalTime; time++){
 			for(int j=0; j<TOTAL_RIDE_NUMBER; j++){
 				if(showNthRideResult[j]){
-					if(preWaitingLineResult.get(time-1).get(j) > Y_MAX)
-						Y_MAX = preWaitingLineResult.get(time-1).get(j).intValue();
-					if(postWaitingLineResult.get(time-1).get(j) > Y_MAX)
-						Y_MAX = preWaitingLineResult.get(time-1).get(j).intValue();
+					if(showPreWaitingLineResult)
+						if(preWaitingLineResult.get(time-1).get(j) > Y_MAX)
+							Y_MAX = preWaitingLineResult.get(time-1).get(j).intValue();
+					if(showPostWaitingLineResult)
+						if(postWaitingLineResult.get(time-1).get(j) > Y_MAX)
+							Y_MAX = postWaitingLineResult.get(time-1).get(j).intValue();
 				}
 			}
 		}
@@ -311,8 +440,8 @@ class ResultShowingPanel extends JPanel{
 		g.drawLine(50, 20, 50, 580);
 		g.drawLine(50, 580, 600, 580);
 		for(int i=0; i<=10; i++){
-			g.drawString(Integer.toString(REAL_Y_MAX-(REAL_Y_MAX/10)*i), 0, 20+56*i);
-			g.drawString(Integer.toString(i*totalTime/10), 50+55*i, 590);
+			g.drawString(Integer.toString(REAL_Y_MAX-(REAL_Y_MAX/10)*i), 30, 25+56*i);
+			g.drawString(Integer.toString(i*totalTime/10), 45+55*i, 595);
 		}
 		
 		
@@ -340,41 +469,47 @@ class ResultShowingPanel extends JPanel{
 }
 
 class AmusementPark{
-	
+	private int totalTime;
 	private ArrayList<Ride> rideSet;
+	static int rideNumber;
 	private int time;
 	private ArrayList<ArrayList<Integer>> preWaitingLineResult, postWaitingLineResult;
 	private int initialPeopleNumber;
 	final static int INITIAL_TIME = 2;
 	
+	static int totalSatisfaction;
 	
-	public AmusementPark(ArrayList<Ride> rideSet){
+	public AmusementPark(ArrayList<Ride> rideSet, int initialPeopleNumber){
 		time = 0;
 		this.rideSet = rideSet;
-		//this.initialPeopleNumber = initialPeopleNumber;
+		totalSatisfaction = 0;
+		for(Ride r: rideSet)
+			totalSatisfaction +=r.popularity;
+		
+		rideNumber = rideSet.size();
+		this.initialPeopleNumber = initialPeopleNumber;
 		preWaitingLineResult = new ArrayList<ArrayList<Integer>>();
 		postWaitingLineResult = new ArrayList<ArrayList<Integer>>();
 	}
 	
 	
 	int influxFunction(int t){
-		//if(t==0)
-			//return initialPeopleNumber;
-		if(t<5)
-			return 30;
-		else
-			return 0;
+		if(t==0)
+			return initialPeopleNumber;
+		else if(t<50)
+			return 3;
+		return 0;
 	}
 	
 	
-	ArrayList<Double> getDistributeProportion(){
+	ArrayList<Double> getDistributeProportion(Person p){
 		ArrayList<Double> proportionArray = new ArrayList<Double>();
 		double totalProportion = 0;
 		for(int i=0; i<rideSet.size(); i++){
 			if(time<INITIAL_TIME)
 				totalProportion += rideSet.get(i).popularity;
 			else{
-				totalProportion += rideSet.get(i).getAppealIndex();
+				totalProportion += rideSet.get(i).getAppealIndex(p);
 			}
 		}
 		
@@ -382,7 +517,7 @@ class AmusementPark{
 			if(time<INITIAL_TIME)
 				proportionArray.add(rideSet.get(i).popularity/totalProportion);
 			else
-				proportionArray.add(rideSet.get(i).getAppealIndex()/totalProportion);
+				proportionArray.add(rideSet.get(i).getAppealIndex(p)/totalProportion);
 		}
 		
 		return proportionArray;
@@ -396,11 +531,14 @@ class AmusementPark{
 		for(Ride ride:rideSet){
 			HashSet<Person> nextPostWaitingLine = new HashSet<Person>();
 			for(Person p: ride.postWaitingLine){
-				if(p.getPostWaitingTimeRemained()==0)
+				boolean leave = p.wantToLeave2();
+				if(p.getPostWaitingTimeRemained()==0 && !leave)
 					influx.add(p);
 				else{
-					p.setPostWaitingTimeRemained(p.getPostWaitingTimeRemained()-1);
-					nextPostWaitingLine.add(p);
+					if(!leave){
+						p.setPostWaitingTimeRemained(p.getPostWaitingTimeRemained()-1);
+						nextPostWaitingLine.add(p);
+					}	
 				}
 			}
 			ride.postWaitingLine = nextPostWaitingLine;
@@ -437,7 +575,7 @@ class AmusementPark{
 		}
 		
 		for(Person p:getInflux()){
-			rideSet.get(nextRide(getDistributeProportion())).preWaitingLine.add(p);
+			rideSet.get(nextRide(getDistributeProportion(p))).preWaitingLine.add(p);
 		}
 		
 		ArrayList<Integer> preResult = new ArrayList<Integer>();
@@ -464,13 +602,95 @@ class AmusementPark{
 	
 }
 
-class Ride{
+class FunctionType{
+	private int functionType;
 	
-	static final double ASSESS_CONSTANT = 0.5;
+	final static int POLINOMIAL = 0;
+	final static int POWER = 1;
+	final static int LOGARITHM = 2;
+	final static int EXPONENTIAL = 3;
 	
-	static int postWaitingTime(int waitingTime){
-		return 0;
+	double[] polynomialCoefficients;
+	
+	double power;
+	
+	double coefficient;
+	
+	public FunctionType(int type, String info){
+		functionType = type;
+		switch(functionType){
+		case FunctionType.POLINOMIAL:
+			String[] coefficients = info.split(",");
+			polynomialCoefficients = new double[coefficients.length];
+			
+			for(int i=0; i<coefficients.length; i++){
+				try{
+					polynomialCoefficients[i] = Double.parseDouble(coefficients[i]);
+				}catch(Exception e){System.out.println(e.getMessage());}
+			}
+			break;
+		case FunctionType.POWER:
+			try{
+				String[] powerInfo = info.split(",");
+				coefficient = Double.parseDouble(powerInfo[0]);
+				power = Double.parseDouble(powerInfo[1]);
+			}catch(Exception e){System.out.println(e.getMessage());}
+			break;
+		default:
+			try{
+				coefficient = Double.parseDouble(info);
+			} catch(Exception e){System.out.println(e.getMessage());}
+		}
 	}
+	
+	int polynomialType(int waitingTime){
+		double result = 0;
+		int degree = polynomialCoefficients.length;
+		for(int power=0; power<degree; power++){
+			result += polynomialCoefficients[degree-1-power] * Math.pow(waitingTime, power);
+		}
+		return (int)result;
+	}
+	
+	
+	int powerType(int waitingTime){
+		return (int)(Math.pow(waitingTime, power)*coefficient);
+	}
+	
+	int logarithmType(int waitingTime){
+		return (int)(Math.log(waitingTime)/Math.log(coefficient));
+	}
+	
+	int exponentialType(int waitingTime){
+		return (int)Math.exp(Math.log(coefficient)*waitingTime);
+	}
+	
+	int postWaitingTime(int waitingTime){
+		switch(functionType){
+		case FunctionType.POLINOMIAL:
+			return polynomialType(waitingTime);
+		case FunctionType.POWER:
+			return powerType(waitingTime);
+		case FunctionType.LOGARITHM:
+			return logarithmType(waitingTime);
+		case FunctionType.EXPONENTIAL:
+			return exponentialType(waitingTime);
+		default:
+			return 0;
+		}
+	}
+}
+
+/*interface Nameable{
+	String name = null;
+	public void setName(String name);
+	public String getName();
+}*/
+
+class Ride{
+	static final double ASSESS_CONSTANT = 0.5;
+	private int index;
+	FunctionType postWaitingFunction;
 	
 	double popularity;
 	int processingPeopleNumberPerTime;
@@ -478,9 +698,11 @@ class Ride{
 	ArrayList<Person> preWaitingLine;
 	HashSet <Person> postWaitingLine;
 	
-	public Ride(double popularity, int processingPeopleNumberPerTime){
+	public Ride(int index, double popularity, int processingPeopleNumberPerTime, FunctionType postWaitingFunction){
+		this.index = index;
 		this.popularity = popularity;
 		this.processingPeopleNumberPerTime = processingPeopleNumberPerTime;
+		this.postWaitingFunction = postWaitingFunction;
 		
 		preWaitingLine = new ArrayList<Person>();
 		postWaitingLine = new HashSet <Person>();
@@ -489,23 +711,36 @@ class Ride{
 	public void takeRide(){
 		for(int i=0; i<Math.min(preWaitingLine.size(),processingPeopleNumberPerTime); i++){
 			Person p = preWaitingLine.get(0);
-			p.setPostWaitingTimeRemained(postWaitingTime(preWaitingLine.size() / processingPeopleNumberPerTime));
+			p.setPostWaitingTimeRemained(postWaitingFunction.postWaitingTime(preWaitingLine.size() / processingPeopleNumberPerTime));
+			p.takenRides[index] = true;
+			p.satisfaction+=this.popularity;
 			postWaitingLine.add(p);
 			preWaitingLine.remove(0);
 		}
 	}
 	
-	public double getAppealIndex(){
+	public double getAppealIndex(Person p){
+		if(p.takenRides[index])
+			return 0;
 		//if(((preWaitingLine.size() / processingPeopleNumberPerTime) + (postWaitingTime(preWaitingLine.size() / processingPeopleNumberPerTime) * ASSESS_CONSTANT))==0)
 		//	return popularity;
 		if(preWaitingLine.isEmpty())
 			return popularity;
-		return popularity/(((double)preWaitingLine.size()/ processingPeopleNumberPerTime) + (postWaitingTime(preWaitingLine.size() / processingPeopleNumberPerTime) * ASSESS_CONSTANT));
+		return popularity/(((double)preWaitingLine.size()/ processingPeopleNumberPerTime) + (postWaitingFunction.postWaitingTime(preWaitingLine.size() / processingPeopleNumberPerTime) * ASSESS_CONSTANT));
 	}
 }
 
 class Person{
+	int totalTimeSpent;
+	int satisfaction;
+	boolean[] takenRides;
 	private int postWaitingTimeRemained;
+
+	public Person(){
+		totalTimeSpent=0;
+		satisfaction=0;
+		takenRides = new boolean[AmusementPark.rideNumber];
+	}
 	
 	public int getPostWaitingTimeRemained(){
 		return postWaitingTimeRemained;
@@ -513,5 +748,22 @@ class Person{
 	
 	public void setPostWaitingTimeRemained(int postWaitingTimeRemained){
 		this.postWaitingTimeRemained = postWaitingTimeRemained;
+	}
+	
+	public boolean wantToLeave2(){
+		//System.out.println(AmusementPark.totalSatisfaction);
+		if((Math.random()+1)/2<((double)satisfaction/AmusementPark.totalSatisfaction)){
+			//System.out.println(String.format("%.02f", ((double)satisfaction/AmusementPark.totalSatisfaction)));
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean wantToLeave3(){
+		for(int i=0; i<AmusementPark.rideNumber; i++){
+			if(takenRides[i]==false)
+				return false;
+		}
+		return true;
 	}
 }
